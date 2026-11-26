@@ -115,6 +115,11 @@ do $$ declare t text; begin
   end loop;
 end $$;
 
+-- Hozzáférés az API-n át (a sorokat a fenti szabályok szűrik); névtelen látogató semmit nem ér el
+grant usage on schema public to authenticated;
+grant select, insert, update, delete on public.deals, public.tasks, public.docs, public.settings to authenticated;
+revoke all on public.deals, public.tasks, public.docs, public.settings from anon;
+
 -- A feladat és dokumentum csak saját ügylethez tartozhat
 create or replace function public.check_deal_owner() returns trigger language plpgsql as $$
 begin
