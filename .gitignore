@@ -1,0 +1,5 @@
+node_modules
+dist
+test/*.png
+test/e2e-result.json
+test/dbg.ts
