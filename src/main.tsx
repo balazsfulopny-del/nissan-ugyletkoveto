@@ -26,7 +26,7 @@ function Shell({ ctx }: { ctx: Ctx }) {
   const h = useHash(); const page = h.split('/')[1] || 'today';
   const st = app.st.state, s = app.settings();
   const ready = st.loaded && (st.pulled || !!app.st.get('settings', app.uid)); // never offer a new PIN before the real settings are known
-  useEffect(() => { if (st.pulled) app.ensureSettings(); }, [st.pulled]);
+  useEffect(() => { if (!st.pulled) return; app.ensureSettings(); app.purgeExpired(); const iv = setInterval(() => app.purgeExpired(), 6 * 3600e3); return () => clearInterval(iv); }, [st.pulled]);
   const syncTxt = !st.online ? `Offline${st.pending ? `, ${st.pending} változás vár` : ''}` : st.error ? 'Mentési hiba, újrapróbálom' : st.pending || st.files ? 'Mentés…' : st.lastSync ? 'Felhőben mentve' : 'Kapcsolódás…';
   if (!ready) return <div id="lock"><img alt="Nissan" src="./logo.png" /><h2>Betöltés…</h2><p>{st.online ? '' : 'Nincs internet. Az első indításhoz kapcsolat kell.'}</p></div>;
   if (locked) return <Lock app={app} onOpen={() => setLocked(false)} />;

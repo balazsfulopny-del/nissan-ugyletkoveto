@@ -31,6 +31,8 @@ export class MemServer {
       },
       subscribe(onRow, onStatus) { S.subs.add(onRow); setTimeout(() => onStatus(true), 0); return () => { S.subs.delete(onRow); }; },
       async upload(p, b) { await S.wait(); S.check(); S.files.set(p, b.slice()); },
+      async remove(t, ids) { await S.wait(); S.check(); ids.forEach(id => { S.rows[t].delete(id); if (t === 'deals') (['tasks', 'docs'] as Table[]).forEach(x => S.rows[x].forEach((r, k) => { if (r.deal_id === id) S.rows[x].delete(k); })); }); },
+      async removeFiles(ps) { await S.wait(); S.check(); ps.forEach(p => S.files.delete(p)); },
       async download(p) { await S.wait(); S.check(); const b = S.files.get(p); if (!b) throw Object.assign(new Error('not found'), { status: 404 }); return b.slice().buffer; },
     };
   }

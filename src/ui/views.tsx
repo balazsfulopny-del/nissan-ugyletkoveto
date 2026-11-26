@@ -25,6 +25,7 @@ export function Today({ app }: { app: App }) {
   return <section>
     <h1>Mai teendők</h1>
     <div class="kpi"><div><b>{act.length}</b><span>aktív ügylet</span></div><div><b>{late.length}</b><span>lejárt feladat</span></div><div><b>{soonN}</b><span>átadás 14 napon belül</span></div><div><b>{ft(c.tot.sum || 0)}</b><span>jutalék ebben a hónapban ({c.n} db)</span></div></div>
+    {app.soonPurged().length > 0 && <div class="card st-y"><b>Hamarosan törlődik (1 éves megőrzés)</b>{app.soonPurged().map(x => <div class="m"><a href={'#/deal/' + x.d.id}>{x.d.cust || 'Névtelen'}</a>: {hd(x.on)} napon, dokumentumokkal együtt. Ha kell valami belőle, töltsd le előtte.</div>)}</div>}
     {!act.length ? <div class="empty"><h2>Még nincs aktív ügylet</h2><p class="note">Vegyél fel egy szerződést, és az app a sablon alapján létrehozza az összes feladatot határidővel az átadásig.</p><p class="row" style="justify-content:center"><button class="b" data-new onClick={() => go('#/deal/' + app.createDeal())}>Új ügylet</button></p></div>
       : <><Legend soon={soon} />{grp('late', 'Lejárt', late, 'Nincs lejárt feladat.')}{grp('', 'Ma', now, 'Mára nincs több feladat.')}{grp('', 'Következő 7 nap', next, 'A következő héten nincs határidő.')}</>}
   </section>;

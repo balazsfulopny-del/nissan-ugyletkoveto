@@ -37,6 +37,12 @@ export function supabaseBackend(sb: SupabaseClient, uid: string): Backend {
       const { error } = await sb.storage.from(BUCKET).upload(path, new Blob([bytes as any], { type: 'application/octet-stream' }), { upsert: true, contentType: 'application/octet-stream' });
       if (error && !/exists/i.test(error.message)) throw err(error);
     },
+    async remove(t, ids) {
+      for (let i = 0; i < ids.length; i += 100) { const { error, status } = await sb.from(t).delete().in(t === 'settings' ? 'owner' : 'id', ids.slice(i, i + 100)); if (error) throw Object.assign(err(error), { status }); }
+    },
+    async removeFiles(paths) {
+      for (let i = 0; i < paths.length; i += 100) { const { error } = await sb.storage.from(BUCKET).remove(paths.slice(i, i + 100)); if (error) throw err(error); }
+    },
     async download(path) {
       const { data, error } = await sb.storage.from(BUCKET).download(path);
       if (error || !data) throw err(error);

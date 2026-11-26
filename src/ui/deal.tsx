@@ -1,6 +1,6 @@
 import { useState } from 'preact/hooks';
 import type { App } from '../lib/actions';
-import { CATS, ics, JVR, jvCalc, prog, status, tSt, type Deal, type Doc } from '../lib/domain';
+import { CATS, ics, JVR, jvCalc, prog, purgeOn, status, tSt, type Deal, type Doc } from '../lib/domain';
 import { fmtD, ft, today } from '../lib/util';
 import { Check, DateField, Field, toast } from './fields';
 import { Bang, go } from './views';
@@ -60,8 +60,9 @@ export function DealView({ app, id }: { app: App; id: string }) {
       <fieldset><legend>ÁTADÁS ÉS JUTALÉK</legend>
         {st === 'done' ? <><div class="g"><DateField label="Átadás napja (ebben a hónapban számol a jutalék)" value={d.handed} onSave={v => up({ handed: v || today() })} /></div>
           <div style="margin-top:8px">{C('paid', 'A jutalékot kifizették')}</div><p class="row" style="margin-top:10px"><button class="s" onClick={() => up({ handed: null, paid: false })}>Átadás visszavonása</button></p></>
-          : st === 'cancel' ? <p class="row"><button class="s" onClick={() => up({ cancel: false })}>Visszaállítás folyamatban lévőre</button></p>
-            : <><p class="row"><button class="b" data-hand onClick={() => up({ handed: today() })}>Autó átadva</button><button class="s x" onClick={() => up({ cancel: true })}>Vevő elállt</button></p><p class="note">Az átadás után az ügylet bekerül az adott havi jutalékelszámolásba.</p></>}
+          : st === 'cancel' ? <p class="row"><button class="s" onClick={() => up({ cancel: false, cancel_at: null })}>Visszaállítás folyamatban lévőre</button></p>
+            : <><p class="row"><button class="b" data-hand onClick={() => up({ handed: today() })}>Autó átadva</button><button class="s x" onClick={() => up({ cancel: true, cancel_at: today() })}>Vevő elállt</button></p><p class="note">Az átadás után az ügylet bekerül az adott havi jutalékelszámolásba.</p></>}
+      {purgeOn(d) && <p class="note">Megőrzés: ez az ügylet a dokumentumaival együtt {fmtD(purgeOn(d))} napon véglegesen törlődik (1 éves szabály).</p>}
       </fieldset>
       <p class="row"><button class="s x" data-del onClick={() => { if (!sure) { setSure(true); setTimeout(() => setSure(false), 4000); return; } app.removeDeal(id); go('#/deals'); toast('Ügylet törölve. A Beállításokban visszaállítható.'); }}>{sure ? 'Biztosan törlöd? Koppints újra' : 'Ügylet törlése'}</button></p>
     </div></div>

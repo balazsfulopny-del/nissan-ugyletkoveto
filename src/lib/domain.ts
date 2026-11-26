@@ -7,7 +7,7 @@ export type Deal = {
   price: number | null; downpay: number | null; margin: number | null; accv: number | null; adj: number | null;
   promise: string; note: string; jv: Record<string, any>;
   offer_ref: string | null; offer_no: string | null; cust_email: string; cust_addr: string; source: string;
-  tpl_version: number; deleted_at: string | null; created_at?: string; updated_at?: string;
+  tpl_version: number; deleted_at: string | null; cancel_at?: string | null; created_at?: string; updated_at?: string;
 };
 export type Sub = { t: string; done: boolean };
 export type Task = {
@@ -88,6 +88,14 @@ export function planTasks(d: Deal, tpl: TplStep[], cur: Task[]): { upsert: Task[
 export const sortTasks = (a: Task, b: Task) => (a.due || '9').localeCompare(b.due || '9') || a.sort - b.sort;
 export type St = 'act' | 'done' | 'cancel';
 export const status = (d: Deal): St => d.cancel ? 'cancel' : d.handed ? 'done' : 'act';
+/* Megőrzés: az átadott vagy elállt ügylet 1 év után mindenestül törlődik (dokumentumokkal együtt);
+   a törölt (kukába tett) ügylet 30 nap után. Figyelmeztetés 14 nappal előtte. */
+export const KEEP_DAYS = 365, BIN_DAYS = 30, WARN_DAYS = 14;
+export function purgeOn(d: Deal): string | null {
+  if (d.deleted_at) return addD(d.deleted_at.slice(0, 10), BIN_DAYS);
+  const base = d.handed || (d.cancel ? (d.cancel_at || (d.updated_at || '').slice(0, 10) || null) : null);
+  return base ? addD(base, KEEP_DAYS) : null;
+}
 export const prog = (ts: Task[]) => ts.length ? Math.round(100 * ts.filter(t => t.done).length / ts.length) : 0;
 export type Col = 'g' | 'y' | 'r' | '';
 export const tSt = (t: Task, soon = 3, now = today()): Col => { if (t.done) return ''; if (!t.due) return 'g'; const n = diff(t.due, now); return n <= 0 ? 'r' : n <= soon ? 'y' : 'g'; };

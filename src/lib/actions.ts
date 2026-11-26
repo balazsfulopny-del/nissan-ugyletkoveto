@@ -1,6 +1,6 @@
 import { Store } from './store';
-import { defSettings, newDeal, planTasks, sortTasks, TPLV, DEF_TPL, type Deal, type Doc, type Settings, type SettingsData, type Task } from './domain';
-import { today, uuid } from './util';
+import { WARN_DAYS, defSettings, purgeOn, newDeal, planTasks, sortTasks, TPLV, DEF_TPL, type Deal, type Doc, type Settings, type SettingsData, type Task } from './domain';
+import { addD, today, uuid } from './util';
 import { encBlob, decBlob } from './crypto';
 
 /* One place for every change the screens make, so rules (task re-planning, soft delete) live together. */
@@ -48,6 +48,23 @@ export class App {
     const now = new Date().toISOString(); this.st.mutate('deals', id, { deleted_at: now });
   }
   restoreDeal(id: string) { this.st.mutate('deals', id, { deleted_at: null }); }
+
+  /** 1 year retention: delete closed deals (and bin items after 30 days) with their tasks and documents */
+  private purging = false;
+  async purgeExpired(now = today()) {
+    if (this.purging) return 0; this.purging = true;
+    try {
+      const due = this.st.list<Deal>('deals', true).filter(d => { const p = purgeOn(d); return p && p <= now; });
+      if (!due.length) return 0;
+      const ids = new Set(due.map(d => d.id));
+      const tasks = this.st.list<Task>('tasks', true).filter(t => ids.has(t.deal_id));
+      const docs = this.st.list<Doc>('docs', true).filter(x => ids.has(x.deal_id));
+      await this.st.purge([...docs.map(x => ({ t: 'docs' as const, id: x.id })), ...tasks.map(t => ({ t: 'tasks' as const, id: t.id })), ...due.map(d => ({ t: 'deals' as const, id: d.id }))], docs.map(x => x.path));
+      return due.length;
+    } catch { return 0; } finally { this.purging = false; }
+  }
+  /** deals that will be deleted within the warning period */
+  soonPurged(now = today()) { return this.st.list<Deal>('deals').map(d => ({ d, on: purgeOn(d) })).filter(x => x.on && !x.d.deleted_at && x.on > now && x.on <= addD(now, WARN_DAYS)!) as { d: Deal; on: string }[]; }
 
   /* ---- tasks ---- */
   tick(id: string, done: boolean) {

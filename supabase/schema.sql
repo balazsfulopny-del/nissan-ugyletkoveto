@@ -14,6 +14,7 @@ create table if not exists public.deals (
   contract    date,
   delivery    date,
   handed      date,
+  cancel_at   date,          -- elállás napja (a megőrzési idő innen számít)
   paid        boolean not null default false,
   cancel      boolean not null default false,
   ceg boolean not null default false, fin boolean not null default false,
@@ -145,3 +146,15 @@ drop policy if exists docs_own_rw on storage.objects;
 create policy docs_own_rw on storage.objects for all to authenticated
   using (bucket_id = 'docs' and (storage.foldername(name))[1] = auth.uid()::text)
   with check (bucket_id = 'docs' and (storage.foldername(name))[1] = auth.uid()::text);
+
+-- Megőrzés (1 év): az app naponta maga törli a lejárt ügyleteket a fájljaikkal együtt.
+-- Tartalék, ha az app hónapokig nem nyílna meg: az adatbázis is törli a sorokat 30 nappal a határidő után.
+create extension if not exists pg_cron;
+create or replace function public.retention_backstop() returns void language sql security definer set search_path = public as $$
+  delete from public.deals d
+  where (d.deleted_at is not null and d.deleted_at < now() - interval '60 days')
+     or (coalesce(d.handed, case when d.cancel then coalesce(d.cancel_at, d.updated_at::date) end) < current_date - 395);
+$$;
+revoke all on function public.retention_backstop() from public, anon, authenticated;
+select cron.unschedule(jobid) from cron.job where jobname = 'ugyletkoveto-retention';
+select cron.schedule('ugyletkoveto-retention', '15 2 * * *', 'select public.retention_backstop()');

@@ -18,5 +18,6 @@ export async function wsBackend(url: string): Promise<Backend> {
     subscribe(r, s) { onRow = r; onSt = s; setTimeout(() => s(ws.readyState === 1), 0); return () => { onRow = null; }; },
     upload: (p, b) => call('upload', p, b64(b)),
     download: async p => unb64(await call('download', p)).buffer,
+    remove: (t, ids) => call('remove', t, ids), removeFiles: ps => call('removeFiles', ps),
   };
 }

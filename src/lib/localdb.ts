@@ -14,6 +14,7 @@ export async function idbLocal(user: string): Promise<LocalDB> {
       return { rows: rk.map((k, i) => [String(k).split(':')[0] as Table, rv[i] as Row]), pending: pv as Pend[], meta };
     },
     async putRows(items) { const tx = db.transaction('rows', 'readwrite'); items.forEach(([t, r]) => tx.store.put(r, t + ':' + r.id)); await tx.done; },
+    async delRows(items) { const tx = db.transaction('rows', 'readwrite'); items.forEach(([t, id]) => tx.store.delete(t + ':' + id)); await tx.done; },
     async putPending(p) { await db.put('pending', p, p.key); },
     async delPending(k) { await db.delete('pending', k); },
     async setMeta(k, v) { await db.put('meta', v, k); },
@@ -32,6 +33,7 @@ export function memLocal(persist: any = {}): LocalDB {
   return {
     async loadAll() { return { rows: [...P.rows.entries()].map(([k, r]: any) => [k.split(':')[0], c(r)]), pending: [...P.pending.values()].map(c), meta: c(P.meta) }; },
     async putRows(items) { items.forEach(([t, r]) => P.rows.set(t + ':' + r.id, c(r))); },
+    async delRows(items) { items.forEach(([t, id]) => P.rows.delete(t + ':' + id)); },
     async putPending(p) { P.pending.set(p.key, c(p)); },
     async delPending(k) { P.pending.delete(k); },
     async setMeta(k, v) { P.meta[k] = c(v); },

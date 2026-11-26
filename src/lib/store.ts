@@ -18,11 +18,15 @@ export interface Backend {
   subscribe(onRow: (t: Table, r: Row) => void, onStatus: (live: boolean) => void): () => void;
   upload(path: string, bytes: Uint8Array): Promise<void>;
   download(path: string): Promise<ArrayBuffer>;
+  /** hard delete (only used by the 1 year retention rule) */
+  remove(table: Table, ids: string[]): Promise<void>;
+  removeFiles(paths: string[]): Promise<void>;
 }
 
 export interface LocalDB {
   loadAll(): Promise<{ rows: [Table, Row][]; pending: Pend[]; meta: Record<string, any> }>;
   putRows(items: [Table, Row][]): Promise<void>;
+  delRows(items: [Table, string][]): Promise<void>;
   putPending(p: Pend): Promise<void>;
   delPending(key: string): Promise<void>;
   setMeta(k: string, v: any): Promise<void>;
@@ -184,6 +188,21 @@ export class Store {
       else this.local.putPending(cur).catch(() => {});
     }
     this.ingest(t, res);
+    this.emit();
+  }
+
+  /* ---------- permanent deletion (retention rule) ---------- */
+  /** removes rows everywhere: files first, then rows on the server, then the local copy.
+   *  `serverToo=false` only forgets them locally (another device already deleted them). */
+  async purge(items: { t: Table; id: string }[], files: string[], serverToo = true) {
+    if (serverToo && this.be) {
+      if (files.length) await this.be.removeFiles(files);
+      for (const t of ['docs', 'tasks', 'deals'] as Table[]) { const ids = items.filter(x => x.t === t).map(x => x.id); if (ids.length) await this.be.remove(t, ids); }
+    }
+    for (const f of files) await this.local.delFile(f).catch(() => {});
+    const del: [Table, string][] = [];
+    items.forEach(({ t, id }) => { this.rows[t].delete(id); const k = t + ':' + id; if (this.pend.delete(k)) this.local.delPending(k).catch(() => {}); del.push([t, id]); });
+    await this.local.delRows(del).catch(() => {});
     this.emit();
   }
 

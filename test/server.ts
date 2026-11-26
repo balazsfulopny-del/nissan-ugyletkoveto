@@ -25,6 +25,7 @@ export function start(port = 5180) {
         let res: any;
         if (op === 'pull') res = await be.pull(a[0], a[1]); else if (op === 'push') res = await be.push(a[0], a[1]);
         else if (op === 'upload') res = await be.upload(a[0], unb64(a[1])); else if (op === 'download') res = b64(await be.download(a[0]));
+        else if (op === 'remove') res = await be.remove(a[0], a[1]); else if (op === 'removeFiles') res = await be.removeFiles(a[0]);
         ws.send(JSON.stringify({ id, res: res ?? null }));
       } catch (e: any) { ws.send(JSON.stringify({ id, err: String(e?.message || e), net: e?.status === 0 })); }
     });
