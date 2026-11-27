@@ -155,3 +155,6 @@ button.dpi .ph{color:var(--mut)}
 button,a,label{-webkit-tap-highlight-color:transparent}
 @media(max-width:640px){.hw small{display:none}#sync{max-width:55%}}
 .card.trade{border-left:4px solid var(--red)}
+/* PIN keypad: perfect circles on every screen size */
+.pad{grid-template-columns:repeat(3,min(72px,22vw));gap:min(14px,4vw)}
+.pad button{width:min(72px,22vw);height:auto;aspect-ratio:1/1;border-radius:50%;padding:0;display:flex;align-items:center;justify-content:center}
