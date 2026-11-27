@@ -6,6 +6,7 @@ export type Deal = {
   paid: boolean; cancel: boolean; ceg: boolean; fin: boolean; trade: boolean; ins: boolean; acc: boolean;
   price: number | null; downpay: number | null; margin: number | null; accv: number | null; adj: number | null;
   promise: string; note: string; jv: Record<string, any>;
+  trade_model: string; trade_year: number | null; trade_km: number | null; trade_price: number | null;
   offer_ref: string | null; offer_no: string | null; cust_email: string; cust_addr: string; source: string;
   tpl_version: number; deleted_at: string | null; cancel_at?: string | null; created_at?: string; updated_at?: string;
 };
@@ -59,6 +60,7 @@ export const newDeal = (): Deal => ({
   id: uuid(), cust: '', phone: '', model: '', vin: '', contract: today(), delivery: null, handed: null,
   paid: false, cancel: false, ceg: false, fin: false, trade: false, ins: false, acc: false,
   price: null, downpay: null, margin: null, accv: null, adj: null, promise: '', note: '', jv: {},
+  trade_model: '', trade_year: null, trade_km: null, trade_price: null,
   offer_ref: null, offer_no: null, cust_email: '', cust_addr: '', source: 'kézi', tpl_version: TPLV, deleted_at: null,
 });
 

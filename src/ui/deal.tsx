@@ -14,7 +14,7 @@ export function DealView({ app, id }: { app: App; id: string }) {
   const st = status(d), ts = app.tasks(id).filter(t => !t.deleted_at), soon = app.settings().data.soon;
   const up = (f: Partial<Deal>) => app.updateDeal(id, f);
   const F = (k: keyof Deal, l: string, ex: any = {}) => <Field label={l} data-f={k} value={d[k] as any} onSave={v => up({ [k]: v } as any)} {...ex} />;
-  const N = (k: keyof Deal, l: string) => <Field label={l} data-f={k} num value={d[k] as any} onSave={v => up({ [k]: v } as any)} />;
+  const N = (k: keyof Deal, l: string) => <Field label={l} data-f={k} money value={d[k] as any} onSave={v => up({ [k]: v } as any)} />;
   const C = (k: keyof Deal, l: string) => <Check label={l} data-f={k} checked={!!d[k]} onChange={v => up({ [k]: v } as any)} />;
 
   return <section>
@@ -23,7 +23,7 @@ export function DealView({ app, id }: { app: App; id: string }) {
       <span>{st === 'done' ? <span class="tag ok">Átadva {fmtD(d.handed)}</span> : st === 'cancel' ? <span class="tag off">Elállt</span> : <span class="tag">{prog(ts)}% kész</span>}</span></div>
     <div class="two"><div>
       <fieldset><legend>VEVŐ ÉS AUTÓ</legend><div class="g">
-        {F('cust', 'Vevő neve', { autoComplete: 'off' })}{F('phone', 'Telefon', { type: 'tel', inputMode: 'tel' })}{F('cust_email', 'E-mail', { type: 'email', inputMode: 'email' })}{F('cust_addr', 'Cím')}
+        {F('cust', 'Vevő neve', { autoComplete: 'off' })}{F('phone', 'Telefon', { type: 'tel', phone: true, placeholder: '+36 30 123 4567' })}{F('cust_email', 'E-mail', { type: 'email', inputMode: 'email' })}{F('cust_addr', 'Cím')}
         {F('model', 'Modell, kivitel', { placeholder: 'pl. Qashqai N-Connecta' })}{F('vin', 'Alvázszám')}{F('offer_no', 'Ajánlatszám (ha van)')}
       </div></fieldset>
       <fieldset><legend>DÁTUMOK</legend><div class="g">
@@ -32,6 +32,12 @@ export function DealView({ app, id }: { app: App; id: string }) {
       </div><p class="note">Ha az átadás dátuma változik, a nem kézzel módosított határidők automatikusan átállnak.</p></fieldset>
       <fieldset><legend>ÜGYLET JELLEMZŐI (ezektől függ a feladatlista és a jutalék)</legend>
         <div style="display:grid;gap:8px">{C('ceg', 'A vevő cég')}{C('fin', 'Lízinges / hiteles (nem készpénzes)')}{C('trade', 'Van beszámított autó')}{C('ins', 'Nálunk köt biztosítást')}{C('acc', 'Van kiegészítő')}</div>
+        {d.trade && <div class="card trade" style="margin:10px 0 0"><b>Beszámított használt autó</b><div class="g" style="margin-top:6px">
+          {F('trade_model', 'Típus', { placeholder: 'pl. Opel Astra 1.4' })}
+          <Field label="Évjárat" data-f="trade_year" num inputMode="numeric" placeholder="pl. 2017" value={d.trade_year} onSave={v => up({ trade_year: v == null ? null : Math.round(v) })} />
+          <Field label="Kilométer" data-f="trade_km" money inputMode="numeric" placeholder="pl. 145 000" value={d.trade_km} onSave={v => up({ trade_km: v == null ? null : Math.round(v) })} />
+          {N('trade_price', 'Beszámítási ár (Ft)')}
+        </div></div>}
         <div class="g" style="margin-top:10px">{N('price', 'Tényleges vételár (Ft)')}{N('downpay', 'Önerő (Ft, lízingnél)')}{N('margin', 'Árrés, jutalékalap (Ft)')}{N('accv', 'Kiegészítők értéke (Ft)')}{N('adj', 'Egyedi jutalék korrekció (Ft, lehet negatív)')}</div>
       </fieldset>
       <Jv app={app} d={d} />
@@ -72,7 +78,7 @@ export function DealView({ app, id }: { app: App; id: string }) {
 function Jv({ app, d }: { app: App; d: Deal }) {
   const j = d.jv || {}, r = jvCalc(j);
   const set = (k: string, v: any) => app.updateDeal(d.id, { jv: { ...(app.deal(d.id)?.jv || {}), [k]: v } });
-  const inp = (k: string) => <Field num value={j[k] ?? null} onSave={v => set(k, v)} aria-label={k} inputMode="decimal" />;
+  const inp = (k: string) => <Field money value={j[k] ?? null} onSave={v => set(k, v)} aria-label={k} inputMode="decimal" />;
   const pct = (k: string, v: number) => <div class="row" style="flex-wrap:nowrap;gap:4px"><span style="width:70px"><Field num value={j[k] ?? v} onSave={x => set(k, x)} aria-label={'Árrés % ' + k} /></span>%</div>;
   return <fieldset><legend>JÓVÁÍRÁS SZÁMÍTÁS</legend>
     <div class="scroll"><table class="jv"><thead><tr><th class="l" /><th>Nettó számlázási ár (beszerzési számla)</th><th>Nettó jóváírt ár (kampány szerint)</th></tr></thead><tbody>

@@ -154,3 +154,4 @@ button.dpi .ph{color:var(--mut)}
 .task .m{display:block;min-height:1.35em}
 button,a,label{-webkit-tap-highlight-color:transparent}
 @media(max-width:640px){.hw small{display:none}#sync{max-width:55%}}
+.card.trade{border-left:4px solid var(--red)}

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
-import { addD, fmtD, numv, parseDate, today } from '../lib/util';
+import { addD, fmtD, fmtPhone, fmtThousands, numv, parseDate, today } from '../lib/util';
 
 /* Inputs keep their own text while the person types; the value is saved after a short pause,
    on leaving the field and when the app goes to the background. A sync arriving meanwhile
@@ -11,20 +11,28 @@ if (typeof document !== 'undefined') {
   window.addEventListener('pagehide', flushAll);
 }
 
-type TP = { value: string | number | null; onSave: (v: any) => void; label?: string; type?: string; multiline?: boolean; num?: boolean; placeholder?: string; inputMode?: string; autoComplete?: string; class?: string; 'data-f'?: string; 'aria-label'?: string };
+type TP = { value: string | number | null; onSave: (v: any) => void; label?: string; type?: string; multiline?: boolean; num?: boolean; money?: boolean; phone?: boolean; placeholder?: string; inputMode?: string; autoComplete?: string; class?: string; 'data-f'?: string; 'aria-label'?: string };
 export function Field(p: TP) {
-  const shown = p.value == null ? '' : String(p.value);
+  const fmt = p.money ? fmtThousands : p.phone ? fmtPhone : null;
+  const show = (v: any) => v == null ? '' : fmt ? fmt(String(v)) : String(v);
+  const shown = show(p.value);
   const [txt, setTxt] = useState(shown);
   const dirty = useRef(false), focused = useRef(false), timer = useRef<any>(null), last = useRef(p.onSave);
   last.current = p.onSave;
-  const commit = () => { clearTimeout(timer.current); timer.current = null; if (!dirty.current) return; dirty.current = false; last.current(p.num ? numv(cur.current) : cur.current); };
+  const commit = () => { clearTimeout(timer.current); timer.current = null; if (!dirty.current) return; dirty.current = false; const v = cur.current; last.current(p.num || p.money ? numv(v) : p.phone ? (v.replace(/\D/g, '').length <= 2 ? '' : v.trim()) : v); };
   const cur = useRef(txt); cur.current = txt;
   useEffect(() => { flushers.add(commit); return () => { flushers.delete(commit); commit(); }; }, []);
   // take outside changes (other device) only when nothing is being typed here
   useEffect(() => { if (!dirty.current && !focused.current) setTxt(shown); }, [shown]);
-  const onInput = (e: any) => { const v = e.currentTarget.value; setTxt(v); cur.current = v; dirty.current = true; clearTimeout(timer.current); timer.current = setTimeout(commit, 500); };
-  const common = { value: txt, onInput, onFocus: () => { focused.current = true; }, onBlur: () => { focused.current = false; commit(); if (!dirty.current) setTxt(p.value == null ? '' : String(p.value)); }, placeholder: p.placeholder, 'aria-label': p['aria-label'], 'data-f': p['data-f'], class: p.class } as any;
-  const el = p.multiline ? <textarea {...common} /> : <input {...common} type={p.type || 'text'} inputMode={(p.inputMode || (p.num ? 'decimal' : undefined)) as any} autoComplete={p.autoComplete || 'off'} />;
+  const onInput = (e: any) => {
+    const el = e.currentTarget as HTMLInputElement; let v = el.value;
+    if (fmt) { // reformat and keep the caret after the same number of digits
+      const pos = el.selectionStart ?? v.length, nd = v.slice(0, pos).replace(/\D/g, '').length, f = fmt(v);
+      if (f !== v) { v = f; el.value = f; let i = 0, c = 0; if (nd) { while (i < f.length) { if (/\d/.test(f[i])) c++; i++; if (c === nd) break; } } else i = p.phone ? Math.min(4, f.length) : 0; try { el.setSelectionRange(i, i); } catch { } }
+    }
+    setTxt(v); cur.current = v; dirty.current = true; clearTimeout(timer.current); timer.current = setTimeout(commit, 500); };
+  const common = { value: txt, onInput, onFocus: (e: any) => { focused.current = true; if (p.phone && !e.currentTarget.value) { setTxt('+36 '); cur.current = '+36 '; } }, onBlur: () => { focused.current = false; commit(); if (!dirty.current) setTxt(show(p.value)); }, placeholder: p.placeholder, 'aria-label': p['aria-label'], 'data-f': p['data-f'], class: p.class } as any;
+  const el = p.multiline ? <textarea {...common} /> : <input {...common} type={p.type || 'text'} inputMode={(p.inputMode || (p.num || p.money ? 'decimal' : p.phone ? 'tel' : undefined)) as any} autoComplete={p.autoComplete || 'off'} />;
   return p.label ? <label>{p.label}{el}</label> : el;
 }
 

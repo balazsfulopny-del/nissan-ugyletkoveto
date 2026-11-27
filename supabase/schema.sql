@@ -28,6 +28,10 @@ create table if not exists public.deals (
   cust_email  text not null default '',
   cust_addr   text not null default '',
   source      text not null default 'kézi',   -- kézi | ajánlat | import
+  trade_model text not null default '',   -- beszámított használt autó
+  trade_year  int,
+  trade_km    int,
+  trade_price numeric,
   promise     text not null default '',
   note        text not null default '',
   jv          jsonb not null default '{}'::jsonb,   -- jóváírás számítás
@@ -163,3 +167,9 @@ $$;
 revoke all on function public.retention_backstop() from public, anon, authenticated;
 select cron.unschedule(jobid) from cron.job where jobname = 'ugyletkoveto-retention';
 select cron.schedule('ugyletkoveto-retention', '15 2 * * *', 'select public.retention_backstop()');
+
+-- Bővítés 2026-11-27 (meglévő adatbázishoz): beszámított autó adatai
+alter table public.deals add column if not exists trade_model text not null default '';
+alter table public.deals add column if not exists trade_year int;
+alter table public.deals add column if not exists trade_km int;
+alter table public.deals add column if not exists trade_price numeric;

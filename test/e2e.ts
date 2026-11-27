@@ -41,6 +41,22 @@ async function until(f: () => Promise<boolean>, ms = 15000) { const t = Date.now
   await A.tap('[data-f=contract]'); await A.fill('#dpin', '2026.11.3'); await A.tap('#dp [data-dpok]'); log((await A.getAttribute('[data-f=contract]', 'data-v')) === '2026-11-03', 'Dátum beírása szöveggel');
   await A.tap('textarea[data-f=note]'); await A.keyboard.type('Hosszú megjegyzés '.repeat(30)); await A.tap('textarea[data-f=promise]');
   log(!(await A.$('h1 b')), 'XSS: HTML a névben nem értelmeződik');
+  // amounts, phone, trade-in
+  await A.tap('input[data-f=price]'); await A.keyboard.type('1250000', { delay: 15 });
+  log((await A.inputValue('input[data-f=price]')) === '1 250 000', 'Összeg ezres tagolással gépelés közben', await A.inputValue('input[data-f=price]'));
+  await A.fill('input[data-f=phone]', ''); await A.tap('input[data-f=cust]'); await A.tap('input[data-f=phone]');
+  log((await A.inputValue('input[data-f=phone]')) === '+36 ', 'Telefon mező +36 előtaggal indul');
+  await A.keyboard.type('06305551234', { delay: 15 });
+  log((await A.inputValue('input[data-f=phone]')) === '+36 30 555 1234', 'Telefonszám magyar tagolással', await A.inputValue('input[data-f=phone]'));
+  log(!(await A.$('input[data-f=trade_model]')), 'Beszámítás mezői rejtve, amíg nincs bepipálva');
+  await A.tap('input[data-f=trade]');
+  log(await until(async () => !!(await A.$('input[data-f=trade_model]'))), 'Beszámítás pipára megjelennek a mezők');
+  await A.tap('input[data-f=trade_model]'); await A.keyboard.type('Opel Astra 1.4', { delay: 10 });
+  await A.tap('input[data-f=trade_year]'); await A.keyboard.type('2017', { delay: 10 });
+  await A.tap('input[data-f=trade_km]'); await A.keyboard.type('145000', { delay: 10 });
+  await A.tap('input[data-f=trade_price]'); await A.keyboard.type('3200000', { delay: 10 });
+  await A.tap('input[data-f=cust]');
+  log(await until(async () => { const d = (await ctl()).deals[0]; return d && d.price === 1250000 && d.phone === '+36 30 555 1234' && d.trade_model === 'Opel Astra 1.4' && d.trade_year === 2017 && d.trade_km === 145000 && d.trade_price === 3200000; }), 'Összeg, telefon és beszámítás a felhőben');
   const ok1 = await until(async () => { const s = await ctl(); const d = s.deals[0]; return d && d.cust === vals.cust && d.phone === vals.phone && d.model === vals.model && d.vin === vals.vin && d.note.length > 400 && s.tasks.length > 10; });
   log(ok1, 'Minden beírt adat és feladat a felhőben');
 
