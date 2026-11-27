@@ -87,7 +87,7 @@ create table if not exists public.settings (
 );
 
 -- updated_at + rev automatikusan
-create or replace function public.touch() returns trigger language plpgsql as $$
+create or replace function public.touch() returns trigger language plpgsql set search_path = public as $$
 begin
   new.updated_at := now();
   if tg_table_name = 'deals' then new.rev := old.rev + 1; end if;
@@ -121,7 +121,7 @@ grant select, insert, update, delete on public.deals, public.tasks, public.docs,
 revoke all on public.deals, public.tasks, public.docs, public.settings from anon;
 
 -- A feladat és dokumentum csak saját ügylethez tartozhat
-create or replace function public.check_deal_owner() returns trigger language plpgsql as $$
+create or replace function public.check_deal_owner() returns trigger language plpgsql set search_path = public as $$
 begin
   if not exists (select 1 from public.deals d where d.id = new.deal_id and d.owner = new.owner) then
     raise exception 'deal not owned';
