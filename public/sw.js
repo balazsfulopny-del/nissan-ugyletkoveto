@@ -1,5 +1,5 @@
 /* Offline start: the app shell is cached; data never goes through here (it is in IndexedDB). */
-const C = 'ugyletkoveto-v1';
+const C = 'ugyletkoveto-v2';
 self.addEventListener('install', e => { e.waitUntil(caches.open(C).then(c => c.addAll(['./', './index.html', './logo.png', './manifest.webmanifest'])).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== C).map(k => caches.delete(k)))).then(() => self.clients.claim())); });
 self.addEventListener('fetch', e => {
